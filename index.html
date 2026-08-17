@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>ยืนยันตัวตน</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    :root{ --cream:#f5f0e6; --green:#5c6b4f; --green-dark:#3c4a35; --danger:#b0453f; }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; font-family:'Sarabun','Segoe UI',Tahoma,sans-serif; color:#33362e;
+      background:var(--cream); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .card{ background:#fff; border-radius:18px; padding:28px 24px; width:100%; max-width:360px; box-shadow:0 8px 24px rgba(60,74,53,0.10); text-align:center; }
+    h1{ font-size:18px; color:var(--green-dark); margin:0 0 4px; }
+    p.sub{ font-size:13px; color:#8b8878; margin:0 0 22px; }
+    label{ display:block; text-align:left; font-size:13px; font-weight:600; color:#5a5748; margin-bottom:6px; }
+    input{ width:100%; padding:12px 14px; border:1.5px solid #e6e0d1; border-radius:10px; font-size:16px; margin-bottom:16px; font-family:inherit; }
+    input:focus{ outline:none; border-color:var(--green); }
+    button{ width:100%; padding:13px; border:none; border-radius:10px; background:var(--green); color:#fff; font-size:15px; font-weight:600; cursor:pointer; font-family:inherit; }
+    button:disabled{ opacity:.6; }
+    .msg{ font-size:13px; margin-top:14px; min-height:16px; }
+    .msg.err{ color:var(--danger); }
+    .msg.ok{ color:#2e6b3e; }
+    .successBox{ display:none; }
+    .checkmark{ font-size:40px; color:#2e6b3e; margin-bottom:6px; }
+    .formBox{ display:block; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="formBox" class="formBox">
+      <h1>ระบบยืนยันตัวตน</h1>
+      <p class="sub" id="accountLabel">-</p>
+      <label for="phoneInput">เบอร์โทรศัพท์ที่ลงทะเบียนไว้กับคลินิก</label>
+      <input id="phoneInput" type="tel" inputmode="numeric" placeholder="เช่น 0812345678" maxlength="15">
+      <button id="submitBtn" onclick="submitVerify()" disabled>กำลังเตรียมระบบ...</button>
+      <div id="msgBox" class="msg"></div>
+    </div>
+    <div id="successBox" class="successBox">
+      <div class="checkmark">✓</div>
+      <h1>การยืนยันตัวตนเสร็จสมบูรณ์</h1>
+      <p class="sub" id="successName">-</p>
+      <div style="font-size:12px;color:#a19d8a;">ท่านสามารถปิดหน้านี้ได้เลยค่ะ</div>
+    </div>
+  </div>
+
+<script>
+  // ============================================================
+  //  ตั้งค่า 2 จุดนี้ครั้งเดียวตอนติดตั้ง (แก้ตรงนี้ที่เดียว ใช้ได้ทุกสาขา):
+  // ============================================================
+
+  // 1) URL เว็บแอป Apps Script (Deploy > Manage deployments > คัดลอก URL ที่ลงท้ายด้วย /exec)
+  const API_URL = 'https://script.google.com/macros/s/AKfycbw9H8RBEWgVEUKJ0HconxIiE1J8E1ZNd4a2GFSmn1a8hRboeiR-7dj7LPQYTlyBqkHzJA/exec';
+
+  // 2) LIFF ID ของแต่ละสาขา (คัดลอกจากหน้า LINE Developers Console > LIFF ของ channel นั้นๆ)
+  const LIFF_ID_MAP = {
+    'NPT': '',           // ใส่ LIFF ID ของสาขา NPT ตรงนี้ เช่น '1234567890-abcdefgh'
+    'BKK-TWN': '',       // ใส่ LIFF ID ของสาขา BKK-TWN
+    'BKK-Bangna': ''     // ใส่ LIFF ID ของสาขา BKK-Bangna
+  };
+  const ACCOUNT_NAME_MAP = {
+    'NPT': 'KAI DEE CLINIC สาขานครปฐม',
+    'BKK-TWN': 'KAI DEE CLINIC สาขาธนบุรี',
+    'BKK-Bangna': 'KAI DEE CLINIC สาขาบางนา'
+  };
+  // ============================================================
+
+  const params = new URLSearchParams(location.search);
+  const BRANCH = params.get('branch') || '';
+  const LIFF_ID = LIFF_ID_MAP[BRANCH] || '';
+  let lineUserId = '';
+
+  document.getElementById('accountLabel').innerText = ACCOUNT_NAME_MAP[BRANCH] || ('สาขา ' + BRANCH);
+
+  window.addEventListener('DOMContentLoaded', async function(){
+    const btn = document.getElementById('submitBtn');
+    if (!BRANCH || !LIFF_ID) {
+      setMsg('ลิงก์นี้ไม่ถูกต้องหรือยังไม่ได้ตั้งค่า LIFF ID ของสาขานี้ กรุณาติดต่อผู้ดูแลระบบคลินิก', true);
+      return;
+    }
+    const withTimeout_ = (promise, ms, label) => Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('หมดเวลารอ (' + label + ')')), ms))
+    ]);
+    try {
+      await withTimeout_(liff.init({ liffId: LIFF_ID }), 12000, 'liff.init');
+      if (!liff.isLoggedIn()) {
+        btn.innerText = 'กำลังนำท่านเข้าสู่ระบบ LINE...';
+        liff.login();
+        return;
+      }
+      const profile = await withTimeout_(liff.getProfile(), 12000, 'liff.getProfile');
+      lineUserId = profile.userId;
+      btn.innerText = 'ยืนยันตัวตน';
+      btn.disabled = false;
+    } catch (e) {
+      setMsg('เปิดระบบยืนยันตัวตนไม่สำเร็จ: ' + e.message, true);
+      btn.innerText = 'ลองใหม่อีกครั้ง';
+      btn.disabled = false;
+      btn.onclick = function(){ window.location.reload(); };
+    }
+  });
+
+  function setMsg(text, isErr){
+    const el = document.getElementById('msgBox');
+    el.innerText = text;
+    el.className = 'msg ' + (isErr ? 'err' : 'ok');
+  }
+
+  function submitVerify(){
+    const phone = document.getElementById('phoneInput').value.trim();
+    if (!phone) { setMsg('กรุณากรอกเบอร์โทรศัพท์', true); return; }
+    if (!lineUserId) { setMsg('ไม่พบข้อมูลบัญชี LINE กรุณาลองเปิดหน้านี้ใหม่อีกครั้ง', true); return; }
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    setMsg('กำลังตรวจสอบ...', false);
+    // ใช้ Content-Type: text/plain ตั้งใจ (ไม่ใช่ application/json) เพื่อเลี่ยงการที่เบราว์เซอร์ยิง preflight OPTIONS request
+    // ก่อน ซึ่ง Apps Script Web App จัดการ OPTIONS ไม่ได้ ทำให้ fetch ล้มเหลวจาก CORS — ฝั่ง Apps Script ยัง parse เป็น JSON ได้ตามปกติ
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'verifyPhone', phone: phone, branch: BRANCH, lineUserId: lineUserId })
+    })
+      .then(res => res.json())
+      .then(res => {
+        btn.disabled = false;
+        if (res.success) {
+          document.getElementById('formBox').style.display = 'none';
+          document.getElementById('successBox').style.display = 'block';
+          document.getElementById('successName').innerText = res.name + ' (HN ' + res.hn + ')';
+          setTimeout(function(){ if (liff.isInClient()) liff.closeWindow(); }, 2500);
+        } else {
+          setMsg(res.message, true);
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        setMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ: ' + err.message, true);
+      });
+  }
+</script>
+</body>
+</html>
