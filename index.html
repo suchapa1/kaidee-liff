@@ -39,6 +39,7 @@
       <input id="phoneInput" type="tel" inputmode="numeric" placeholder="เช่น 0812345678" maxlength="15">
       <button id="submitBtn" onclick="submitVerify()" disabled>กำลังเตรียมระบบ...</button>
       <div id="msgBox" class="msg"></div>
+      <div id="debugBox" style="font-size:10px;color:#c4c0b0;margin-top:10px;text-align:left;word-break:break-all;"></div>
     </div>
     <div id="successBox" class="successBox">
       <div class="checkmark">✓</div>
@@ -75,9 +76,11 @@
   let lineUserId = '';
 
   document.getElementById('accountLabel').innerText = ACCOUNT_NAME_MAP[BRANCH] || ('สาขา ' + BRANCH);
+  document.getElementById('debugBox').innerText = 'debug: branch=' + (BRANCH || '(ว่าง)') + ' | liffId=' + (LIFF_ID || '(ว่าง)');
 
   window.addEventListener('DOMContentLoaded', async function(){
     const btn = document.getElementById('submitBtn');
+    const dbg = document.getElementById('debugBox');
     if (!BRANCH || !LIFF_ID) {
       setMsg('ลิงก์นี้ไม่ถูกต้องหรือยังไม่ได้ตั้งค่า LIFF ID ของสาขานี้ กรุณาติดต่อผู้ดูแลระบบคลินิก', true);
       return;
@@ -88,6 +91,7 @@
     ]);
     try {
       await withTimeout_(liff.init({ liffId: LIFF_ID }), 12000, 'liff.init');
+      dbg.innerText += ' | isInClient=' + liff.isInClient() + ' | isLoggedIn=' + liff.isLoggedIn();
       if (!liff.isLoggedIn()) {
         btn.innerText = 'กำลังนำท่านเข้าสู่ระบบ LINE...';
         liff.login();
@@ -95,9 +99,11 @@
       }
       const profile = await withTimeout_(liff.getProfile(), 12000, 'liff.getProfile');
       lineUserId = profile.userId;
+      dbg.innerText += ' | userId=' + (lineUserId ? (lineUserId.slice(0,6) + '...' + lineUserId.slice(-4)) : '(ว่าง)');
       btn.innerText = 'ยืนยันตัวตน';
       btn.disabled = false;
     } catch (e) {
+      dbg.innerText += ' | ERROR: ' + e.message;
       setMsg('เปิดระบบยืนยันตัวตนไม่สำเร็จ: ' + e.message, true);
       btn.innerText = 'ลองใหม่อีกครั้ง';
       btn.disabled = false;
@@ -123,6 +129,7 @@
       + '&phone=' + encodeURIComponent(phone)
       + '&branch=' + encodeURIComponent(BRANCH)
       + '&lineUserId=' + encodeURIComponent(lineUserId);
+    document.getElementById('debugBox').innerText += ' | กำลังเปิด: ' + url;
     window.location.href = url;
   }
 </script>
