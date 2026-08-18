@@ -49,8 +49,9 @@
   </div>
 
   <!-- ฟอร์มซ่อน + iframe ซ่อน สำหรับส่งข้อมูลไปยัง Apps Script โดยไม่ต้องเปลี่ยนหน้า (ใช้แทน fetch()/script-tag ที่บาง webview บล็อก) -->
-  <iframe name="verifyFrame" id="verifyFrame" style="display:none;"></iframe>
-  <form id="verifyForm" method="POST" target="verifyFrame" style="display:none;">
+  <!-- สำคัญ: ใช้ position:absolute + opacity:0 แทน display:none เพราะ WebView บางตัว (โดยเฉพาะในแอปมือถือ) จะไม่โหลดเนื้อหา iframe เลยถ้าตั้ง display:none ไว้ -->
+  <iframe name="verifyFrame" id="verifyFrame" style="position:absolute;width:1px;height:1px;opacity:0;border:none;pointer-events:none;left:-9999px;"></iframe>
+  <form id="verifyForm" method="POST" target="verifyFrame" style="position:absolute;left:-9999px;">
     <input type="hidden" name="action" value="verifyPhone">
     <input type="hidden" name="phone" id="formPhone">
     <input type="hidden" name="branch" id="formBranch">
