@@ -48,16 +48,6 @@
     </div>
   </div>
 
-  <!-- ฟอร์มซ่อน + iframe ซ่อน สำหรับส่งข้อมูลไปยัง Apps Script โดยไม่ต้องเปลี่ยนหน้า (ใช้แทน fetch()/script-tag ที่บาง webview บล็อก) -->
-  <!-- สำคัญ: ใช้ position:absolute + opacity:0 แทน display:none เพราะ WebView บางตัว (โดยเฉพาะในแอปมือถือ) จะไม่โหลดเนื้อหา iframe เลยถ้าตั้ง display:none ไว้ -->
-  <iframe name="verifyFrame" id="verifyFrame" style="position:absolute;width:1px;height:1px;opacity:0;border:none;pointer-events:none;left:-9999px;"></iframe>
-  <form id="verifyForm" method="POST" target="verifyFrame" style="position:absolute;left:-9999px;">
-    <input type="hidden" name="action" value="verifyPhone">
-    <input type="hidden" name="phone" id="formPhone">
-    <input type="hidden" name="branch" id="formBranch">
-    <input type="hidden" name="lineUserId" id="formLineUserId">
-  </form>
-
 <script>
   // ============================================================
   //  ตั้งค่า 2 จุดนี้ครั้งเดียวตอนติดตั้ง (แก้ตรงนี้ที่เดียว ใช้ได้ทุกสาขา):
@@ -121,53 +111,19 @@
     el.className = 'msg ' + (isErr ? 'err' : 'ok');
   }
 
-  let pendingTimeoutId = null;
-  let verifyFinished = false;
-
-  // ฟังข้อความที่ Apps Script postMessage() กลับมาให้ (จากหน้าที่โหลดอยู่ใน iframe ซ่อน)
-  window.addEventListener('message', function(event){
-    if (verifyFinished) return;
-    let res;
-    try { res = JSON.parse(event.data); } catch (e) { return; } // ข้อความที่ parse ไม่ได้ ไม่ใช่ของเรา ข้ามไป
-    if (!res || typeof res.success === 'undefined') return; // ไม่ตรงรูปแบบผลลัพธ์ที่เราคาดหวัง ข้ามไป (กันข้อความแปลกปลอมจากที่อื่น)
-    verifyFinished = true;
-    clearTimeout(pendingTimeoutId);
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = false;
-    if (res.success) {
-      document.getElementById('formBox').style.display = 'none';
-      document.getElementById('successBox').style.display = 'block';
-      document.getElementById('successName').innerText = res.name + ' (HN ' + res.hn + ')';
-      setTimeout(function(){ if (liff.isInClient()) liff.closeWindow(); }, 2500);
-    } else {
-      setMsg(res.message, true);
-    }
-  });
-
   function submitVerify(){
     const phone = document.getElementById('phoneInput').value.trim();
     if (!phone) { setMsg('กรุณากรอกเบอร์โทรศัพท์', true); return; }
     if (!lineUserId) { setMsg('ไม่พบข้อมูลบัญชี LINE กรุณาลองเปิดหน้านี้ใหม่อีกครั้ง', true); return; }
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    setMsg('กำลังตรวจสอบ...', false);
-    verifyFinished = false;
+    setMsg('กำลังนำท่านไปหน้ายืนยันตัวตน...', false);
 
-    // ส่งฟอร์มแบบ POST ธรรมดาเข้า iframe ซ่อน (ไม่เปลี่ยนหน้าเว็บที่เห็น) แล้วรอรับผลลัพธ์ผ่าน postMessage ด้านบน
-    // วิธีนี้ใช้เทคโนโลยี form submission + postMessage ที่เก่าแก่และรองรับกว้างกว่า fetch()/script-tag มาก
-    document.getElementById('formPhone').value = phone;
-    document.getElementById('formBranch').value = BRANCH;
-    document.getElementById('formLineUserId').value = lineUserId;
-    const form = document.getElementById('verifyForm');
-    form.action = API_URL;
-    form.submit();
-
-    pendingTimeoutId = setTimeout(() => {
-      if (verifyFinished) return;
-      verifyFinished = true;
-      btn.disabled = false;
-      setMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ (หมดเวลารอ) กรุณาลองใหม่อีกครั้ง', true);
-    }, 15000);
+    // พาไปหน้าผลลัพธ์ตรงๆ (เหมือนกดลิงก์ธรรมดาทั่วไป) แทนการเรียกข้ามหน้าด้วย fetch/script-tag/iframe ที่เจอปัญหาถูกบล็อกมาก่อนหน้านี้
+    // วิธีนี้เป็นการเปลี่ยนหน้าเว็บปกติ (ไม่ใช่ CORS request) จึงไม่ติดข้อจำกัดด้านความปลอดภัยของเบราว์เซอร์เลย รับประกันว่าใช้ได้แน่นอน
+    const url = API_URL + '?action=verifyPhone'
+      + '&phone=' + encodeURIComponent(phone)
+      + '&branch=' + encodeURIComponent(BRANCH)
+      + '&lineUserId=' + encodeURIComponent(lineUserId);
+    window.location.href = url;
   }
 </script>
 </body>
