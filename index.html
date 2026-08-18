@@ -118,29 +118,57 @@
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     setMsg('กำลังตรวจสอบ...', false);
-    // ใช้ Content-Type: text/plain ตั้งใจ (ไม่ใช่ application/json) เพื่อเลี่ยงการที่เบราว์เซอร์ยิง preflight OPTIONS request
-    // ก่อน ซึ่ง Apps Script Web App จัดการ OPTIONS ไม่ได้ ทำให้ fetch ล้มเหลวจาก CORS — ฝั่ง Apps Script ยัง parse เป็น JSON ได้ตามปกติ
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'verifyPhone', phone: phone, branch: BRANCH, lineUserId: lineUserId })
-    })
-      .then(res => res.json())
-      .then(res => {
-        btn.disabled = false;
-        if (res.success) {
-          document.getElementById('formBox').style.display = 'none';
-          document.getElementById('successBox').style.display = 'block';
-          document.getElementById('successName').innerText = res.name + ' (HN ' + res.hn + ')';
-          setTimeout(function(){ if (liff.isInClient()) liff.closeWindow(); }, 2500);
-        } else {
-          setMsg(res.message, true);
-        }
-      })
-      .catch(err => {
-        btn.disabled = false;
-        setMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ: ' + err.message, true);
-      });
+
+    // ใช้เทคนิค JSONP (แทรก <script src="..."> แล้วให้ฝั่งเซิร์ฟเวอร์ส่งกลับมาเป็นโค้ด JS ที่เรียก callback function ของเรา)
+    // แทนที่จะใช้ fetch() ธรรมดา เพราะ fetch() แบบ CORS จะถูกเบราว์เซอร์บล็อกเสมอเมื่อเซิร์ฟเวอร์ปลายทาง (Apps Script) redirect ไปคนละโดเมน
+    // (script.google.com -> script.googleusercontent.com) ส่วนการโหลดผ่าน <script src> ไม่ติดข้อจำกัดนี้ จึงใช้ได้ปกติ
+    const callbackName = 'liffVerifyCb_' + Date.now();
+    let finished = false;
+    const cleanup_ = () => {
+      delete window[callbackName];
+      const s = document.getElementById(callbackName + '_script');
+      if (s) s.remove();
+    };
+    const timeoutId = setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      cleanup_();
+      btn.disabled = false;
+      setMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ (หมดเวลารอ) กรุณาลองใหม่อีกครั้ง', true);
+    }, 15000);
+
+    window[callbackName] = function(res){
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeoutId);
+      cleanup_();
+      btn.disabled = false;
+      if (res.success) {
+        document.getElementById('formBox').style.display = 'none';
+        document.getElementById('successBox').style.display = 'block';
+        document.getElementById('successName').innerText = res.name + ' (HN ' + res.hn + ')';
+        setTimeout(function(){ if (liff.isInClient()) liff.closeWindow(); }, 2500);
+      } else {
+        setMsg(res.message, true);
+      }
+    };
+
+    const url = API_URL + '?action=verifyPhone&callback=' + encodeURIComponent(callbackName)
+      + '&phone=' + encodeURIComponent(phone)
+      + '&branch=' + encodeURIComponent(BRANCH)
+      + '&lineUserId=' + encodeURIComponent(lineUserId);
+    const script = document.createElement('script');
+    script.id = callbackName + '_script';
+    script.src = url;
+    script.onerror = function(){
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeoutId);
+      cleanup_();
+      btn.disabled = false;
+      setMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', true);
+    };
+    document.body.appendChild(script);
   }
 </script>
 </body>
