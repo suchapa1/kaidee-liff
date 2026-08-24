@@ -54,17 +54,17 @@
   //  ตั้งค่า 2 จุดนี้ครั้งเดียวตอนติดตั้ง (แก้ตรงนี้ที่เดียว ใช้ได้ทุกสาขา):
   // ============================================================
 
-  // 1) URL เว็บแอป Apps Script สำรอง (ใช้กรณีไม่ได้ใส่ ?apiUrl= มาใน Endpoint URL ของ LIFF)
-  //    แนะนำ: ใส่ &apiUrl=URLที่encodeแล้ว ต่อท้าย Endpoint URL ของแต่ละสาขาใน LINE Developers Console แทน
-  //    ถ้า Apps Script URL เปลี่ยนในอนาคต (เช่น deploy ผิดวิธีจนได้ URL ใหม่) จะได้แก้แค่ช่อง Endpoint URL ใน LINE Console
-  //    โดยไม่ต้องมาแก้ไฟล์นี้ใน GitHub อีกเลย
+  // ============================================================
+  //  ไม่ต้องแก้ไฟล์นี้อีกแล้วต่อไปนี้ ไม่ว่าจะเพิ่มสาขาใหม่กี่สาขาก็ตาม!
+  //  ทุกอย่าง (URL เว็บแอป, LIFF ID, ชื่อบัญชี) อ่านมาจาก Endpoint URL ที่ตั้งไว้ใน LINE Developers Console ของแต่ละสาขาโดยตรง
+  //  รูปแบบ Endpoint URL: https://.../?branch=รหัสสาขา&apiUrl=...&liffId=LIFF_ID_ของสาขานั้น&accountName=ชื่อบัญชีที่encodeแล้ว
+  // ============================================================
   const API_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycbzcSTfmDvdDMwqB91p45eoU0z5dtnp95wk2dtr7tCsQfAyCPL63JmrW7BmRja-tqHw1GQ/exec';
-
-  // 2) LIFF ID ของแต่ละสาขา (คัดลอกจากหน้า LINE Developers Console > LIFF ของ channel นั้นๆ)
+  // แผนที่สำรอง (เผื่อสาขาเก่าที่ยังไม่ได้ใส่ &liffId=/&accountName= ใน Endpoint URL) — สาขาใหม่ไม่ต้องมาเพิ่มตรงนี้แล้ว
   const LIFF_ID_MAP = {
-    'NPT': '2011142627-EkHcD8Ut',           // ใส่ LIFF ID ของสาขา NPT ตรงนี้ เช่น '1234567890-abcdefgh'
-    'BKK-TWN': '2011198160-Lwjxa1Ci',       // ใส่ LIFF ID ของสาขา BKK-TWN
-    'BKK-Bangna': ''     // ใส่ LIFF ID ของสาขา BKK-Bangna
+    'NPT': '',
+    'BKK-TWN': '',
+    'BKK-Bangna': ''
   };
   const ACCOUNT_NAME_MAP = {
     'NPT': 'KAI DEE CLINIC สาขานครปฐม',
@@ -76,10 +76,11 @@
   const params = new URLSearchParams(location.search);
   const BRANCH = params.get('branch') || '';
   const API_URL = params.get('apiUrl') ? decodeURIComponent(params.get('apiUrl')) : API_URL_FALLBACK;
-  const LIFF_ID = LIFF_ID_MAP[BRANCH] || '';
+  const LIFF_ID = params.get('liffId') || LIFF_ID_MAP[BRANCH] || '';
   let lineUserId = '';
 
-  document.getElementById('accountLabel').innerText = ACCOUNT_NAME_MAP[BRANCH] || ('สาขา ' + BRANCH);
+  const ACCOUNT_NAME_FROM_URL = params.get('accountName') ? decodeURIComponent(params.get('accountName')) : '';
+  document.getElementById('accountLabel').innerText = ACCOUNT_NAME_FROM_URL || ACCOUNT_NAME_MAP[BRANCH] || ('สาขา ' + BRANCH);
   document.getElementById('debugBox').innerText = 'debug: branch=' + (BRANCH || '(ว่าง)') + ' | liffId=' + (LIFF_ID || '(ว่าง)');
 
   window.addEventListener('DOMContentLoaded', async function(){
