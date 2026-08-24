@@ -54,8 +54,11 @@
   //  ตั้งค่า 2 จุดนี้ครั้งเดียวตอนติดตั้ง (แก้ตรงนี้ที่เดียว ใช้ได้ทุกสาขา):
   // ============================================================
 
-  // 1) URL เว็บแอป Apps Script (Deploy > Manage deployments > คัดลอก URL ที่ลงท้ายด้วย /exec)
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzcSTfmDvdDMwqB91p45eoU0z5dtnp95wk2dtr7tCsQfAyCPL63JmrW7BmRja-tqHw1GQ/exec';
+  // 1) URL เว็บแอป Apps Script สำรอง (ใช้กรณีไม่ได้ใส่ ?apiUrl= มาใน Endpoint URL ของ LIFF)
+  //    แนะนำ: ใส่ &apiUrl=URLที่encodeแล้ว ต่อท้าย Endpoint URL ของแต่ละสาขาใน LINE Developers Console แทน
+  //    ถ้า Apps Script URL เปลี่ยนในอนาคต (เช่น deploy ผิดวิธีจนได้ URL ใหม่) จะได้แก้แค่ช่อง Endpoint URL ใน LINE Console
+  //    โดยไม่ต้องมาแก้ไฟล์นี้ใน GitHub อีกเลย
+  const API_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycbzcSTfmDvdDMwqB91p45eoU0z5dtnp95wk2dtr7tCsQfAyCPL63JmrW7BmRja-tqHw1GQ/exec';
 
   // 2) LIFF ID ของแต่ละสาขา (คัดลอกจากหน้า LINE Developers Console > LIFF ของ channel นั้นๆ)
   const LIFF_ID_MAP = {
@@ -72,6 +75,7 @@
 
   const params = new URLSearchParams(location.search);
   const BRANCH = params.get('branch') || '';
+  const API_URL = params.get('apiUrl') ? decodeURIComponent(params.get('apiUrl')) : API_URL_FALLBACK;
   const LIFF_ID = LIFF_ID_MAP[BRANCH] || '';
   let lineUserId = '';
 
