@@ -130,7 +130,7 @@
 
     // พาไปหน้าผลลัพธ์ตรงๆ (เหมือนกดลิงก์ธรรมดาทั่วไป) แทนการเรียกข้ามหน้าด้วย fetch/script-tag/iframe ที่เจอปัญหาถูกบล็อกมาก่อนหน้านี้
     // วิธีนี้เป็นการเปลี่ยนหน้าเว็บปกติ (ไม่ใช่ CORS request) จึงไม่ติดข้อจำกัดด้านความปลอดภัยของเบราว์เซอร์เลย รับประกันว่าใช้ได้แน่นอน
-    const url = API_URL + '?action=verifyPhone'
+    const url = API_URL + '?action=lookupPhone'
       + '&phone=' + encodeURIComponent(phone)
       + '&branch=' + encodeURIComponent(BRANCH)
       + '&lineUserId=' + encodeURIComponent(lineUserId);
