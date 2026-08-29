@@ -55,15 +55,16 @@
   // ============================================================
 
   // ============================================================
-  //  ไม่ต้องแก้ไฟล์นี้อีกแล้วต่อไปนี้ ไม่ว่าจะเพิ่มสาขาใหม่กี่สาขาก็ตาม!
-  //  ทุกอย่าง (URL เว็บแอป, LIFF ID, ชื่อบัญชี) อ่านมาจาก Endpoint URL ที่ตั้งไว้ใน LINE Developers Console ของแต่ละสาขาโดยตรง
-  //  รูปแบบ Endpoint URL: https://.../?branch=รหัสสาขา&apiUrl=...&liffId=LIFF_ID_ของสาขานั้น&accountName=ชื่อบัญชีที่encodeแล้ว
+  //  URL เว็บแอป Apps Script — แก้ตรงนี้เองได้เลยเวลา URL เปลี่ยน (ไม่ต้องขอให้ช่วย encode อีกแล้ว)
+  //  วิธีดู URL ล่าสุด: Apps Script > Deploy > Manage deployments > คัดลอก URL ที่ลงท้ายด้วย /exec มาวางแทนบรรทัดล่างนี้เลย
+  //  (ปกติ URL ไม่ควรเปลี่ยนถ้ากด Deploy แบบ "New version" ทุกครั้ง ไม่ใช่ "New deployment")
   // ============================================================
-  const API_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycbzM6najEKfTvLtn8aPZYH-3NL4oLnJ22ccYyzRRP8cbneWUJUqI4FQP8NTwMzVmZlmabg/exec';
-  // แผนที่สำรอง (เผื่อสาขาเก่าที่ยังไม่ได้ใส่ &liffId=/&accountName= ใน Endpoint URL) — สาขาใหม่ไม่ต้องมาเพิ่มตรงนี้แล้ว
+  const API_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycbxlxH7bw0IMLoVaFN9roF2jpS7MopzPuZJzPg093N5FnBlg2sBD5eaD8HotdqBNSdYSFw/exec';
+
+  // LIFF ID ของแต่ละสาขา (คัดลอกจากหน้า LINE Developers Console > LIFF ของ channel นั้นๆ) — แก้ตรงนี้เองได้เลยเช่นกัน
   const LIFF_ID_MAP = {
-    'NPT': '',
-    'BKK-TWN': '',
+    'NPT': '2011142627-EkHcD8Ut',
+    'BKK-TWN': '2011198160-Lwjxa1Ci',
     'BKK-Bangna': ''
   };
   const ACCOUNT_NAME_MAP = {
@@ -75,6 +76,8 @@
 
   const params = new URLSearchParams(location.search);
   const BRANCH = params.get('branch') || '';
+  // ถ้า Endpoint URL มี &apiUrl=/&liffId= ใส่ไว้อยู่แล้ว (จากที่เคยตั้งไว้ก่อนหน้านี้) ระบบจะยังใช้ค่านั้นก่อนเป็นอันดับแรก
+  // แต่ถ้าไม่มี ก็จะใช้ค่าคงที่ด้านบนแทน — แก้ที่เดียวตรงนี้ก็พอ ไม่ต้องไปแก้ Endpoint URL ใน LINE Console อีก
   const API_URL = params.get('apiUrl') ? decodeURIComponent(params.get('apiUrl')) : API_URL_FALLBACK;
   const LIFF_ID = params.get('liffId') || LIFF_ID_MAP[BRANCH] || '';
   let lineUserId = '';
