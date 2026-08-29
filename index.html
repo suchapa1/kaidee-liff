@@ -59,7 +59,7 @@
   //  วิธีดู URL ล่าสุด: Apps Script > Deploy > Manage deployments > คัดลอก URL ที่ลงท้ายด้วย /exec มาวางแทนบรรทัดล่างนี้เลย
   //  (ปกติ URL ไม่ควรเปลี่ยนถ้ากด Deploy แบบ "New version" ทุกครั้ง ไม่ใช่ "New deployment")
   // ============================================================
-  const API_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycby6GcfgX7vxgcWAVN7ifXJIr0hriwUWGczhcwsAyLardT_VHaFw6Lzy8_fO3KgMxy7MIQ/exec';
+  const API_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycbzm86DAJmJyqkBBIvjc3Ydhjq8KbL60C17qDt3FdL_9ljwNb7BIFx8uhCvX3N0EnhfIrQ/exec';
 
   // LIFF ID ของแต่ละสาขา (คัดลอกจากหน้า LINE Developers Console > LIFF ของ channel นั้นๆ) — แก้ตรงนี้เองได้เลยเช่นกัน
   const LIFF_ID_MAP = {
@@ -137,7 +137,8 @@
       + '&phone=' + encodeURIComponent(phone)
       + '&branch=' + encodeURIComponent(BRANCH)
       + '&lineUserId=' + encodeURIComponent(lineUserId)
-      + '&selfUrl=' + encodeURIComponent(API_URL);
+      + '&selfUrl=' + encodeURIComponent(API_URL)
+      + '&_t=' + Date.now(); // กันแคช — ทดสอบด้วยเบอร์เดิมซ้ำๆ URL จะเหมือนเดิมทุกครั้ง เสี่ยงโดนแอป LINE แคชหน้าเก่าไว้แสดงแทนของใหม่
     document.getElementById('debugBox').innerText += ' | กำลังเปิด: ' + url;
     window.location.href = url;
   }
